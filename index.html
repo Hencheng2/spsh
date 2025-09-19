@@ -89,6 +89,23 @@
             gap: 10px;
         }
 
+        .back-button {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 10px;
+        }
+
+        .back-button:hover {
+            background-color: var(--hover-green);
+        }
+
         /* Menu Bar Styles */
         .menu-bar {
             background-color: var(--dark-header);
@@ -246,7 +263,7 @@
         }
 
         .row-number {
-            width: 30px;
+            width: 40px;
             height: 25px;
             display: flex;
             align-items: center;
@@ -260,7 +277,7 @@
         .column-headers {
             position: absolute;
             top: 0;
-            left: 30px;
+            left: 40px;
             display: flex;
             z-index: 10;
         }
@@ -281,7 +298,7 @@
         .spreadsheet {
             position: absolute;
             top: 25px;
-            left: 30px;
+            left: 40px;
             overflow: auto;
         }
 
@@ -485,6 +502,9 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">
+                <button class="back-button" onclick="window.location.href='https://hencheng2.github.io/all/';">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
                 <i class="fas fa-table"></i>
                 <h1>ExcelClone</h1>
             </div>
@@ -520,7 +540,53 @@
                 <div class="dropdown-item" data-action="export"><i class="fas fa-file-export"></i> Export</div>
             </div>
             
-            <!-- Other dropdown menus would be defined here -->
+            <!-- Home Dropdown -->
+            <div class="dropdown-menu" id="home-dropdown">
+                <div class="dropdown-item" data-action="cut"><i class="fas fa-cut"></i> Cut</div>
+                <div class="dropdown-item" data-action="copy"><i class="fas fa-copy"></i> Copy</div>
+                <div class="dropdown-item" data-action="paste"><i class="fas fa-paste"></i> Paste</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="format-painter"><i class="fas fa-paint-brush"></i> Format Painter</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="find"><i class="fas fa-search"></i> Find & Select</div>
+            </div>
+            
+            <!-- Insert Dropdown -->
+            <div class="dropdown-menu" id="insert-dropdown">
+                <div class="dropdown-item" data-action="table"><i class="fas fa-table"></i> Table</div>
+                <div class="dropdown-item" data-action="image"><i class="fas fa-image"></i> Image</div>
+                <div class="dropdown-item" data-action="chart"><i class="fas fa-chart-bar"></i> Chart</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="link"><i class="fas fa-link"></i> Link</div>
+                <div class="dropdown-item" data-action="comment"><i class="fas fa-comment"></i> Comment</div>
+            </div>
+            
+            <!-- Formulas Dropdown -->
+            <div class="dropdown-menu" id="formulas-dropdown">
+                <div class="dropdown-item" data-action="sum"><i class="fas fa-sigma"></i> AutoSum</div>
+                <div class="dropdown-item" data-action="average"><i class="fas fa-calculator"></i> Average</div>
+                <div class="dropdown-item" data-action="count"><i class="fas fa-list-ol"></i> Count Numbers</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="max"><i class="fas fa-arrow-up"></i> Max</div>
+                <div class="dropdown-item" data-action="min"><i class="fas fa-arrow-down"></i> Min</div>
+            </div>
+            
+            <!-- Data Dropdown -->
+            <div class="dropdown-menu" id="data-dropdown">
+                <div class="dropdown-item" data-action="sort-asc"><i class="fas fa-sort-amount-up"></i> Sort A to Z</div>
+                <div class="dropdown-item" data-action="sort-desc"><i class="fas fa-sort-amount-down"></i> Sort Z to A</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="filter"><i class="fas fa-filter"></i> Filter</div>
+                <div class="dropdown-item" data-action="validation"><i class="fas fa-check-circle"></i> Data Validation</div>
+            </div>
+            
+            <!-- Help Dropdown -->
+            <div class="dropdown-menu" id="help-dropdown">
+                <div class="dropdown-item" data-action="help"><i class="fas fa-question-circle"></i> Help Center</div>
+                <div class="dropdown-item" data-action="feedback"><i class="fas fa-comment-dots"></i> Send Feedback</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="about"><i class="fas fa-info-circle"></i> About ExcelClone</div>
+            </div>
         </div>
 
         <!-- Toolbar -->
@@ -631,15 +697,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize the spreadsheet
-            const rows = 50;
-            const cols = 26;
+            // Initialize the spreadsheet with more rows and columns
+            const rows = 500;
+            const cols = 500;
             const rowNumbers = document.getElementById('row-numbers');
             const columnHeaders = document.getElementById('column-headers');
             const cellsContainer = document.getElementById('cells-container');
             let selectedCell = null;
             let currentFile = null;
-
+            
             // Create row numbers
             for (let i = 1; i <= rows; i++) {
                 const rowNumber = document.createElement('div');
@@ -648,11 +714,11 @@
                 rowNumbers.appendChild(rowNumber);
             }
 
-            // Create column headers (A, B, C, ...)
+            // Create column headers (A, B, C, ..., Z, AA, AB, ...)
             for (let i = 0; i < cols; i++) {
                 const columnHeader = document.createElement('div');
                 columnHeader.className = 'column-header';
-                columnHeader.textContent = String.fromCharCode(65 + i);
+                columnHeader.textContent = numberToColumnLetters(i);
                 columnHeaders.appendChild(columnHeader);
             }
 
@@ -688,6 +754,16 @@
                 
                 cellsContainer.appendChild(row);
             }
+            
+            // Helper function to convert column number to letters (0 -> A, 25 -> Z, 26 -> AA, etc.)
+            function numberToColumnLetters(num) {
+                let letters = '';
+                while (num >= 0) {
+                    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[num % 26] + letters;
+                    num = Math.floor(num / 26) - 1;
+                }
+                return letters;
+            }
 
             // Formula bar functionality
             const formulaInput = document.getElementById('formula-input');
@@ -712,23 +788,50 @@
                 });
             }
             
-            // File menu functionality
-            const fileMenu = document.getElementById('file-menu');
-            const fileDropdown = document.getElementById('file-dropdown');
-            
-            fileMenu.addEventListener('click', function(e) {
+            // Menu click handlers
+            document.getElementById('file-menu').addEventListener('click', function(e) {
                 e.stopPropagation();
-                const isShowing = fileDropdown.classList.contains('show');
+                toggleDropdown('file-dropdown', this);
+            });
+            
+            document.getElementById('home-menu').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('home-dropdown', this);
+            });
+            
+            document.getElementById('insert-menu').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('insert-dropdown', this);
+            });
+            
+            document.getElementById('formulas-menu').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('formulas-dropdown', this);
+            });
+            
+            document.getElementById('data-menu').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('data-dropdown', this);
+            });
+            
+            document.getElementById('help-menu').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('help-dropdown', this);
+            });
+            
+            function toggleDropdown(dropdownId, menuItem) {
+                const dropdown = document.getElementById(dropdownId);
+                const isShowing = dropdown.classList.contains('show');
                 
                 hideAllDropdowns();
                 
                 if (!isShowing) {
-                    fileDropdown.classList.add('show');
-                    fileMenu.classList.add('active');
-                    // Position the dropdown below the file menu
-                    fileDropdown.style.left = fileMenu.offsetLeft + 'px';
+                    dropdown.classList.add('show');
+                    menuItem.classList.add('active');
+                    // Position the dropdown below the menu item
+                    dropdown.style.left = menuItem.offsetLeft + 'px';
                 }
-            });
+            }
             
             // Close dropdowns when clicking elsewhere
             document.addEventListener('click', function() {
@@ -748,6 +851,56 @@
                 option.addEventListener('click', function() {
                     const action = this.dataset.action;
                     handleFileAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            // Home dropdown actions
+            const homeOptions = document.querySelectorAll('#home-dropdown .dropdown-item');
+            homeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleHomeAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            // Insert dropdown actions
+            const insertOptions = document.querySelectorAll('#insert-dropdown .dropdown-item');
+            insertOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleInsertAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            // Formulas dropdown actions
+            const formulasOptions = document.querySelectorAll('#formulas-dropdown .dropdown-item');
+            formulasOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleFormulasAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            // Data dropdown actions
+            const dataOptions = document.querySelectorAll('#data-dropdown .dropdown-item');
+            dataOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleDataAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            // Help dropdown actions
+            const helpOptions = document.querySelectorAll('#help-dropdown .dropdown-item');
+            helpOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleHelpAction(action);
                     hideAllDropdowns();
                 });
             });
@@ -774,6 +927,97 @@
                         break;
                     case 'export':
                         exportWorkbook();
+                        break;
+                }
+            }
+            
+            function handleHomeAction(action) {
+                switch(action) {
+                    case 'cut':
+                        cutSelection();
+                        break;
+                    case 'copy':
+                        copySelection();
+                        break;
+                    case 'paste':
+                        pasteSelection();
+                        break;
+                    case 'format-painter':
+                        formatPainter();
+                        break;
+                    case 'find':
+                        findAndSelect();
+                        break;
+                }
+            }
+            
+            function handleInsertAction(action) {
+                switch(action) {
+                    case 'table':
+                        insertTable();
+                        break;
+                    case 'image':
+                        insertImage();
+                        break;
+                    case 'chart':
+                        insertChart();
+                        break;
+                    case 'link':
+                        insertLink();
+                        break;
+                    case 'comment':
+                        insertComment();
+                        break;
+                }
+            }
+            
+            function handleFormulasAction(action) {
+                switch(action) {
+                    case 'sum':
+                        insertFormula('SUM');
+                        break;
+                    case 'average':
+                        insertFormula('AVERAGE');
+                        break;
+                    case 'count':
+                        insertFormula('COUNT');
+                        break;
+                    case 'max':
+                        insertFormula('MAX');
+                        break;
+                    case 'min':
+                        insertFormula('MIN');
+                        break;
+                }
+            }
+            
+            function handleDataAction(action) {
+                switch(action) {
+                    case 'sort-asc':
+                        sortData(true);
+                        break;
+                    case 'sort-desc':
+                        sortData(false);
+                        break;
+                    case 'filter':
+                        applyFilter();
+                        break;
+                    case 'validation':
+                        dataValidation();
+                        break;
+                }
+            }
+            
+            function handleHelpAction(action) {
+                switch(action) {
+                    case 'help':
+                        showHelp();
+                        break;
+                    case 'feedback':
+                        sendFeedback();
+                        break;
+                    case 'about':
+                        showAbout();
                         break;
                 }
             }
@@ -935,6 +1179,127 @@
                 alert('Export functionality would be implemented here. In a real application, this would allow exporting to PDF, CSV, or other formats.');
             }
             
+            function cutSelection() {
+                if (selectedCell) {
+                    navigator.clipboard.writeText(selectedCell.textContent);
+                    selectedCell.textContent = '';
+                    updateStatus('Content cut to clipboard');
+                }
+            }
+            
+            function copySelection() {
+                if (selectedCell) {
+                    navigator.clipboard.writeText(selectedCell.textContent);
+                    updateStatus('Content copied to clipboard');
+                }
+            }
+            
+            function pasteSelection() {
+                if (selectedCell) {
+                    navigator.clipboard.readText().then(text => {
+                        selectedCell.textContent = text;
+                        updateStatus('Content pasted from clipboard');
+                    });
+                }
+            }
+            
+            function formatPainter() {
+                alert('Format Painter would copy formatting from the selected cell to apply to other cells');
+            }
+            
+            function findAndSelect() {
+                const searchTerm = prompt('Enter text to find:');
+                if (searchTerm) {
+                    const cells = document.querySelectorAll('.cell');
+                    for (let cell of cells) {
+                        if (cell.textContent.includes(searchTerm)) {
+                            if (selectedCell) {
+                                selectedCell.classList.remove('selected');
+                            }
+                            cell.classList.add('selected');
+                            selectedCell = cell;
+                            document.getElementById('formula-input').value = cell.textContent;
+                            
+                            // Scroll to the cell
+                            cell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                            
+                            updateStatus('Found matching cell');
+                            return;
+                        }
+                    }
+                    updateStatus('No matching cells found');
+                }
+            }
+            
+            function insertTable() {
+                alert('Table insertion functionality would be implemented here');
+            }
+            
+            function insertImage() {
+                alert('Image insertion functionality would be implemented here');
+            }
+            
+            function insertChart() {
+                alert('Chart insertion functionality would be implemented here');
+            }
+            
+            function insertLink() {
+                const url = prompt('Enter URL:');
+                if (url && selectedCell) {
+                    selectedCell.innerHTML = `<a href="${url}" style="color: #5abf95;" target="_blank">${selectedCell.textContent || url}</a>`;
+                    updateStatus('Link inserted');
+                }
+            }
+            
+            function insertComment() {
+                const comment = prompt('Enter comment:');
+                if (comment && selectedCell) {
+                    selectedCell.style.position = 'relative';
+                    selectedCell.title = comment;
+                    selectedCell.style.border = '1px solid #ff851b';
+                    updateStatus('Comment added');
+                }
+            }
+            
+            function insertFormula(formulaType) {
+                if (selectedCell) {
+                    selectedCell.textContent = `=${formulaType}()`;
+                    // Place cursor between parentheses
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    range.setStart(selectedCell.firstChild, formulaType.length + 2);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    
+                    updateStatus(`Inserted ${formulaType} function`);
+                }
+            }
+            
+            function sortData(ascending) {
+                alert(`Data would be sorted in ${ascending ? 'ascending' : 'descending'} order`);
+            }
+            
+            function applyFilter() {
+                alert('Filter would be applied to the selected data');
+            }
+            
+            function dataValidation() {
+                alert('Data validation rules would be applied');
+            }
+            
+            function showHelp() {
+                window.open('https://support.microsoft.com/excel', '_blank');
+            }
+            
+            function sendFeedback() {
+                alert('Feedback form would be displayed');
+            }
+            
+            function showAbout() {
+                alert('ExcelClone v1.0\nA modern spreadsheet application\nCreated with HTML, CSS, and JavaScript');
+            }
+            
             function updateStatus(message) {
                 document.querySelector('.status-info span').textContent = message;
                 
@@ -978,6 +1343,26 @@
                                 break;
                             case 'Align Right':
                                 selectedCell.style.textAlign = 'right';
+                                break;
+                            case 'Number Format':
+                                selectedCell.style.fontFamily = 'monospace';
+                                break;
+                            case 'Percentage':
+                                if (selectedCell.textContent && !isNaN(selectedCell.textContent)) {
+                                    selectedCell.textContent = (parseFloat(selectedCell.textContent) * 100) + '%';
+                                }
+                                break;
+                            case 'Insert Function':
+                                insertFormula('SUM');
+                                break;
+                            case 'AutoSum':
+                                insertFormula('SUM');
+                                break;
+                            case 'Sort Ascending':
+                                sortData(true);
+                                break;
+                            case 'Sort Descending':
+                                sortData(false);
                                 break;
                         }
                     }
