@@ -19,6 +19,8 @@
             --hover-green: #2c7d59;
             --selected-cell: #2a4d3f;
             --menu-bg: #1e3a30;
+            --selected-row: rgba(61, 153, 112, 0.2);
+            --selected-column: rgba(255, 133, 27, 0.2);
         }
 
         * {
@@ -272,6 +274,13 @@
             color: var(--text-dim);
             border-right: 1px solid var(--dark-border);
             border-bottom: 1px solid var(--dark-border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .row-number.selected, .column-header.selected {
+            background-color: var(--accent-green);
+            color: var(--text-light);
         }
 
         .column-headers {
@@ -293,6 +302,8 @@
             border-right: 1px solid var(--dark-border);
             border-bottom: 1px solid var(--dark-border);
             background-color: var(--dark-header);
+            cursor: pointer;
+            user-select: none;
         }
 
         .spreadsheet {
@@ -328,6 +339,14 @@
         .cell.selected {
             border: 1px solid var(--accent-orange);
             z-index: 2;
+        }
+
+        .row.selected .cell {
+            background-color: var(--selected-row);
+        }
+
+        .cell.column-selected {
+            background-color: var(--selected-column);
         }
 
         /* Status Bar Styles */
@@ -434,6 +453,24 @@
         .btn-secondary {
             background-color: var(--dark-cell);
             color: var(--text-light);
+        }
+
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .format-option:hover {
+            background-color: var(--hover-green);
+        }
+
+        .format-option i {
+            width: 24px;
+            text-align: center;
         }
 
         /* Print Styles */
@@ -668,6 +705,38 @@
             <div class="modal-body">
                 <p>Enter a name for your workbook:</p>
                 <input type="text" id="save-filename" class="formula-input" style="width: 100%; margin-top: 10px;" value="Untitled Workbook">
+                
+                <p style="margin-top: 15px;">Select file format:</p>
+                <div class="modal-options">
+                    <div class="format-option" data-format="xlsx">
+                        <i class="far fa-file-excel"></i>
+                        <div>
+                            <div>Excel Workbook (.xlsx)</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">Standard Excel format</div>
+                        </div>
+                    </div>
+                    <div class="format-option" data-format="csv">
+                        <i class="fas fa-file-csv"></i>
+                        <div>
+                            <div>CSV (Comma delimited) (.csv)</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">Saves as comma-separated values</div>
+                        </div>
+                    </div>
+                    <div class="format-option" data-format="txt">
+                        <i class="far fa-file-alt"></i>
+                        <div>
+                            <div>Text (Tab delimited) (.txt)</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">Saves as tab-separated values</div>
+                        </div>
+                    </div>
+                    <div class="format-option" data-format="ods">
+                        <i class="far fa-file-alt"></i>
+                        <div>
+                            <div>OpenDocument Spreadsheet (.ods)</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">Open document format</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="save-cancel">Cancel</button>
@@ -705,13 +774,28 @@
             const cellsContainer = document.getElementById('cells-container');
             let selectedCell = null;
             let currentFile = null;
+            let selectedFormat = 'xlsx';
+            let selectedRows = new Set();
+            let selectedColumns = new Set();
             
             // Create row numbers
             for (let i = 1; i <= rows; i++) {
                 const rowNumber = document.createElement('div');
                 rowNumber.className = 'row-number';
                 rowNumber.textContent = i;
+                rowNumber.dataset.row = i - 1;
                 rowNumbers.appendChild(rowNumber);
+                
+                // Add row selection
+                rowNumber.addEventListener('click', function(e) {
+                    if (e.shiftKey) {
+                        // Add to selection
+                        selectRow(parseInt(this.dataset.row), true);
+                    } else {
+                        // Replace selection
+                        selectRow(parseInt(this.dataset.row), false);
+                    }
+                });
             }
 
             // Create column headers (A, B, C, ..., Z, AA, AB, ...)
@@ -719,13 +803,26 @@
                 const columnHeader = document.createElement('div');
                 columnHeader.className = 'column-header';
                 columnHeader.textContent = numberToColumnLetters(i);
+                columnHeader.dataset.col = i;
                 columnHeaders.appendChild(columnHeader);
+                
+                // Add column selection
+                columnHeader.addEventListener('click', function(e) {
+                    if (e.shiftKey) {
+                        // Add to selection
+                        selectColumn(parseInt(this.dataset.col), true);
+                    } else {
+                        // Replace selection
+                        selectColumn(parseInt(this.dataset.col), false);
+                    }
+                });
             }
 
             // Create cells grid
             for (let i = 0; i < rows; i++) {
                 const row = document.createElement('div');
                 row.className = 'row';
+                row.dataset.row = i;
                 
                 for (let j = 0; j < cols; j++) {
                     const cell = document.createElement('div');
@@ -735,13 +832,22 @@
                     cell.dataset.col = j;
                     
                     // Add event listener for cell selection
-                    cell.addEventListener('click', function() {
-                        if (selectedCell) {
-                            selectedCell.classList.remove('selected');
+                    cell.addEventListener('click', function(e) {
+                        if (e.shiftKey && selectedCell) {
+                            // Select range between current cell and previously selected cell
+                            selectCellRange(selectedCell, this);
+                        } else {
+                            // Clear row and column selections
+                            clearRowColumnSelections();
+                            
+                            // Select single cell
+                            if (selectedCell) {
+                                selectedCell.classList.remove('selected');
+                            }
+                            this.classList.add('selected');
+                            selectedCell = this;
+                            document.getElementById('formula-input').value = this.textContent;
                         }
-                        this.classList.add('selected');
-                        selectedCell = this;
-                        document.getElementById('formula-input').value = this.textContent;
                     });
                     
                     // Update formula bar when cell content changes
@@ -763,6 +869,110 @@
                     num = Math.floor(num / 26) - 1;
                 }
                 return letters;
+            }
+            
+            // Select a row
+            function selectRow(rowIndex, addToSelection) {
+                if (!addToSelection) {
+                    clearRowColumnSelections();
+                }
+                
+                // Toggle row selection
+                if (selectedRows.has(rowIndex)) {
+                    selectedRows.delete(rowIndex);
+                    document.querySelector(`.row-number[data-row="${rowIndex}"]`).classList.remove('selected');
+                    document.querySelectorAll(`.row[data-row="${rowIndex}"] .cell`).forEach(cell => {
+                        cell.classList.remove('selected');
+                    });
+                } else {
+                    selectedRows.add(rowIndex);
+                    document.querySelector(`.row-number[data-row="${rowIndex}"]`).classList.add('selected');
+                    document.querySelectorAll(`.row[data-row="${rowIndex}"] .cell`).forEach(cell => {
+                        cell.classList.add('selected');
+                    });
+                }
+                
+                updateStatus(`Row ${rowIndex + 1} selected`);
+            }
+            
+            // Select a column
+            function selectColumn(colIndex, addToSelection) {
+                if (!addToSelection) {
+                    clearRowColumnSelections();
+                }
+                
+                // Toggle column selection
+                if (selectedColumns.has(colIndex)) {
+                    selectedColumns.delete(colIndex);
+                    document.querySelector(`.column-header[data-col="${colIndex}"]`).classList.remove('selected');
+                    document.querySelectorAll(`.cell[data-col="${colIndex}"]`).forEach(cell => {
+                        cell.classList.remove('column-selected');
+                    });
+                } else {
+                    selectedColumns.add(colIndex);
+                    document.querySelector(`.column-header[data-col="${colIndex}"]`).classList.add('selected');
+                    document.querySelectorAll(`.cell[data-col="${colIndex}"]`).forEach(cell => {
+                        cell.classList.add('column-selected');
+                    });
+                }
+                
+                updateStatus(`Column ${numberToColumnLetters(colIndex)} selected`);
+            }
+            
+            // Clear all row and column selections
+            function clearRowColumnSelections() {
+                // Clear row selections
+                selectedRows.forEach(rowIndex => {
+                    document.querySelector(`.row-number[data-row="${rowIndex}"]`).classList.remove('selected');
+                    document.querySelectorAll(`.row[data-row="${rowIndex}"] .cell`).forEach(cell => {
+                        cell.classList.remove('selected');
+                    });
+                });
+                selectedRows.clear();
+                
+                // Clear column selections
+                selectedColumns.forEach(colIndex => {
+                    document.querySelector(`.column-header[data-col="${colIndex}"]`).classList.remove('selected');
+                    document.querySelectorAll(`.cell[data-col="${colIndex}"]`).forEach(cell => {
+                        cell.classList.remove('column-selected');
+                    });
+                });
+                selectedColumns.clear();
+            }
+            
+            // Select range of cells
+            function selectCellRange(fromCell, toCell) {
+                clearRowColumnSelections();
+                
+                const fromRow = parseInt(fromCell.dataset.row);
+                const fromCol = parseInt(fromCell.dataset.col);
+                const toRow = parseInt(toCell.dataset.row);
+                const toCol = parseInt(toCell.dataset.col);
+                
+                const startRow = Math.min(fromRow, toRow);
+                const endRow = Math.max(fromRow, toRow);
+                const startCol = Math.min(fromCol, toCol);
+                const endCol = Math.max(fromCol, toCol);
+                
+                // Clear previous selection
+                if (selectedCell) {
+                    selectedCell.classList.remove('selected');
+                }
+                
+                // Select all cells in range
+                for (let i = startRow; i <= endRow; i++) {
+                    for (let j = startCol; j <= endCol; j++) {
+                        const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+                        if (cell) {
+                            cell.classList.add('selected');
+                        }
+                    }
+                }
+                
+                selectedCell = toCell;
+                document.getElementById('formula-input').value = toCell.textContent;
+                
+                updateStatus(`Range ${numberToColumnLetters(startCol)}${startRow + 1}:${numberToColumnLetters(endCol)}${endRow + 1} selected`);
             }
 
             // Formula bar functionality
@@ -905,6 +1115,16 @@
                 });
             });
             
+            // Format selection in save modal
+            const formatOptions = document.querySelectorAll('.format-option');
+            formatOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    formatOptions.forEach(opt => opt.style.backgroundColor = '');
+                    this.style.backgroundColor = 'var(--hover-green)';
+                    selectedFormat = this.dataset.format;
+                });
+            });
+            
             function handleFileAction(action) {
                 switch(action) {
                     case 'new':
@@ -1034,6 +1254,13 @@
                     document.getElementById('workbook-name').value = 'Untitled Workbook';
                     currentFile = null;
                     
+                    // Clear selections
+                    clearRowColumnSelections();
+                    if (selectedCell) {
+                        selectedCell.classList.remove('selected');
+                        selectedCell = null;
+                    }
+                    
                     // Update status
                     updateStatus('New workbook created');
                 }
@@ -1043,7 +1270,7 @@
                 // Create a file input element
                 const fileInput = document.createElement('input');
                 fileInput.type = 'file';
-                fileInput.accept = '.json,.csv,.txt';
+                fileInput.accept = '.xlsx,.csv,.txt,.ods';
                 
                 fileInput.onchange = e => { 
                     const file = e.target.files[0];
@@ -1051,7 +1278,9 @@
                     
                     reader.onload = function(e) {
                         try {
-                            const data = JSON.parse(e.target.result);
+                            // This would normally parse the file based on its format
+                            // For this demo, we'll just assume it's a simple format we can handle
+                            const data = parseFileData(e.target.result, file.name);
                             loadWorkbook(data);
                             currentFile = file.name;
                             document.getElementById('workbook-name').value = file.name.replace(/\.[^/.]+$/, "");
@@ -1067,9 +1296,55 @@
                 fileInput.click();
             }
             
+            function parseFileData(data, filename) {
+                // Simple parser for demo purposes
+                // In a real application, this would properly handle different file formats
+                const extension = filename.split('.').pop().toLowerCase();
+                const cellData = [];
+                
+                if (extension === 'csv') {
+                    // Simple CSV parsing
+                    const lines = data.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        const cells = lines[i].split(',');
+                        for (let j = 0; j < cells.length; j++) {
+                            cellData.push({
+                                row: i,
+                                col: j,
+                                value: cells[j].trim()
+                            });
+                        }
+                    }
+                } else {
+                    // Default parsing (for demo)
+                    const lines = data.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        const cells = lines[i].split('\t');
+                        for (let j = 0; j < cells.length; j++) {
+                            cellData.push({
+                                row: i,
+                                col: j,
+                                value: cells[j].trim()
+                            });
+                        }
+                    }
+                }
+                
+                return {
+                    name: filename.replace(/\.[^/.]+$/, ""),
+                    cells: cellData,
+                    savedAt: new Date().toISOString()
+                };
+            }
+            
             function showSaveModal(isSaveAs = false) {
                 const modal = document.getElementById('save-modal');
                 modal.style.display = 'flex';
+                
+                // Reset format selection
+                formatOptions.forEach(opt => opt.style.backgroundColor = '');
+                formatOptions[0].style.backgroundColor = 'var(--hover-green)';
+                selectedFormat = 'xlsx';
                 
                 // Set up event listeners for the modal
                 document.getElementById('save-cancel').onclick = function() {
@@ -1082,42 +1357,157 @@
                 
                 document.getElementById('save-confirm').onclick = function() {
                     const filename = document.getElementById('save-filename').value;
-                    saveWorkbook(filename);
+                    saveWorkbook(filename, selectedFormat);
                     modal.style.display = 'none';
                 };
             }
             
-            function saveWorkbook(filename) {
+            function saveWorkbook(filename, format) {
                 // Collect all cell data
                 const cells = document.querySelectorAll('.cell');
                 const cellData = [];
                 
+                // Find the bounds of data to avoid saving empty cells
+                let maxRow = 0;
+                let maxCol = 0;
+                
                 cells.forEach(cell => {
-                    cellData.push({
-                        row: cell.dataset.row,
-                        col: cell.dataset.col,
-                        value: cell.textContent
-                    });
+                    if (cell.textContent.trim() !== '') {
+                        const row = parseInt(cell.dataset.row);
+                        const col = parseInt(cell.dataset.col);
+                        cellData.push({
+                            row: row,
+                            col: col,
+                            value: cell.textContent
+                        });
+                        
+                        if (row > maxRow) maxRow = row;
+                        if (col > maxCol) maxCol = col;
+                    }
                 });
                 
                 // Create workbook object
                 const workbook = {
                     name: filename,
                     cells: cellData,
+                    format: format,
                     savedAt: new Date().toISOString()
                 };
                 
-                // Convert to JSON and create a download link
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(workbook));
+                // Convert to appropriate format and create a download link
+                let dataStr, mimeType, extension;
+                
+                switch(format) {
+                    case 'csv':
+                        dataStr = convertToCSV(workbook);
+                        mimeType = 'text/csv';
+                        extension = 'csv';
+                        break;
+                    case 'txt':
+                        dataStr = convertToTXT(workbook);
+                        mimeType = 'text/plain';
+                        extension = 'txt';
+                        break;
+                    case 'ods':
+                        // This would be more complex in a real implementation
+                        dataStr = "data:application/vnd.oasis.opendocument.spreadsheet," + encodeURIComponent(JSON.stringify(workbook));
+                        mimeType = 'application/vnd.oasis.opendocument.spreadsheet';
+                        extension = 'ods';
+                        break;
+                    case 'xlsx':
+                    default:
+                        // This would be much more complex in a real implementation
+                        dataStr = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet," + encodeURIComponent(JSON.stringify(workbook));
+                        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                        extension = 'xlsx';
+                        break;
+                }
+                
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", filename + ".json");
+                downloadAnchor.setAttribute("download", `${filename}.${extension}`);
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
                 downloadAnchor.remove();
                 
                 currentFile = filename;
-                updateStatus('Workbook saved successfully');
+                updateStatus(`Workbook saved as ${filename}.${extension}`);
+            }
+            
+            function convertToCSV(workbook) {
+                // Find the maximum row and column to determine grid size
+                let maxRow = 0;
+                let maxCol = 0;
+                
+                workbook.cells.forEach(cell => {
+                    if (cell.row > maxRow) maxRow = cell.row;
+                    if (cell.col > maxCol) maxCol = cell.col;
+                });
+                
+                // Create a 2D array representation
+                const grid = [];
+                for (let i = 0; i <= maxRow; i++) {
+                    grid[i] = [];
+                    for (let j = 0; j <= maxCol; j++) {
+                        grid[i][j] = '';
+                    }
+                }
+                
+                // Populate the grid with cell values
+                workbook.cells.forEach(cell => {
+                    grid[cell.row][cell.col] = cell.value;
+                });
+                
+                // Convert to CSV string
+                let csv = '';
+                for (let i = 0; i <= maxRow; i++) {
+                    for (let j = 0; j <= maxCol; j++) {
+                        // Escape quotes and wrap in quotes if contains comma
+                        let value = grid[i][j];
+                        if (value.includes(',') || value.includes('"')) {
+                            value = '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        csv += value;
+                        if (j < maxCol) csv += ',';
+                    }
+                    csv += '\n';
+                }
+                
+                return "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+            }
+            
+            function convertToTXT(workbook) {
+                // Similar to CSV but with tabs instead of commas
+                let maxRow = 0;
+                let maxCol = 0;
+                
+                workbook.cells.forEach(cell => {
+                    if (cell.row > maxRow) maxRow = cell.row;
+                    if (cell.col > maxCol) maxCol = cell.col;
+                });
+                
+                const grid = [];
+                for (let i = 0; i <= maxRow; i++) {
+                    grid[i] = [];
+                    for (let j = 0; j <= maxCol; j++) {
+                        grid[i][j] = '';
+                    }
+                }
+                
+                workbook.cells.forEach(cell => {
+                    grid[cell.row][cell.col] = cell.value;
+                });
+                
+                let txt = '';
+                for (let i = 0; i <= maxRow; i++) {
+                    for (let j = 0; j <= maxCol; j++) {
+                        txt += grid[i][j];
+                        if (j < maxCol) txt += '\t';
+                    }
+                    txt += '\n';
+                }
+                
+                return "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
             }
             
             function loadWorkbook(data) {
@@ -1176,7 +1566,7 @@
             }
             
             function exportWorkbook() {
-                alert('Export functionality would be implemented here. In a real application, this would allow exporting to PDF, CSV, or other formats.');
+                showSaveModal(true);
             }
             
             function cutSelection() {
@@ -1184,6 +1574,9 @@
                     navigator.clipboard.writeText(selectedCell.textContent);
                     selectedCell.textContent = '';
                     updateStatus('Content cut to clipboard');
+                } else if (selectedRows.size > 0 || selectedColumns.size > 0) {
+                    // For row/column selection, we would need to handle multiple cells
+                    alert('Cut operation for multiple cells would be implemented here');
                 }
             }
             
@@ -1191,6 +1584,9 @@
                 if (selectedCell) {
                     navigator.clipboard.writeText(selectedCell.textContent);
                     updateStatus('Content copied to clipboard');
+                } else if (selectedRows.size > 0 || selectedColumns.size > 0) {
+                    // For row/column selection, we would need to handle multiple cells
+                    alert('Copy operation for multiple cells would be implemented here');
                 }
             }
             
@@ -1200,6 +1596,9 @@
                         selectedCell.textContent = text;
                         updateStatus('Content pasted from clipboard');
                     });
+                } else if (selectedRows.size > 0 || selectedColumns.size > 0) {
+                    // For row/column selection, we would need to handle multiple cells
+                    alert('Paste operation for multiple cells would be implemented here');
                 }
             }
             
