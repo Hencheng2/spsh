@@ -18,6 +18,7 @@
             --text-dim: #b8d4c5;
             --hover-green: #2c7d59;
             --selected-cell: #2a4d3f;
+            --menu-bg: #1e3a30;
         }
 
         * {
@@ -94,6 +95,8 @@
             display: flex;
             padding: 0 10px;
             border-bottom: 1px solid var(--dark-border);
+            position: relative;
+            z-index: 50;
         }
 
         .menu-item {
@@ -101,10 +104,52 @@
             cursor: pointer;
             font-size: 14px;
             transition: background-color 0.2s;
+            position: relative;
         }
 
         .menu-item:hover {
             background-color: var(--hover-green);
+        }
+
+        .menu-item.active {
+            background-color: var(--accent-green);
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--menu-bg);
+            border: 1px solid var(--dark-border);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 100;
+            min-width: 200px;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--hover-green);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: var(--dark-border);
+            margin: 5px 0;
         }
 
         /* Toolbar Styles */
@@ -294,7 +339,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
-            z-index: 100;
+            z-index: 1000;
             align-items: center;
             justify-content: center;
         }
@@ -304,6 +349,7 @@
             border: 1px solid var(--dark-border);
             border-radius: 5px;
             width: 400px;
+            max-width: 90%;
             padding: 20px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
@@ -373,6 +419,32 @@
             color: var(--text-light);
         }
 
+        /* Print Styles */
+        @media print {
+            .header, .menu-bar, .toolbar, .formula-bar, .status-bar {
+                display: none !important;
+            }
+            
+            .spreadsheet-container {
+                position: static;
+                overflow: visible;
+            }
+            
+            .row-numbers, .column-headers {
+                position: static;
+            }
+            
+            .spreadsheet {
+                position: static;
+            }
+            
+            .cell {
+                height: auto;
+                overflow: visible;
+                white-space: normal;
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .toolbar {
@@ -420,21 +492,35 @@
                 <input type="text" value="Untitled Workbook" id="workbook-name">
             </div>
             <div class="user-actions">
-                <button class="tool-button" title="Save"><i class="fas fa-save"></i></button>
-                <button class="tool-button" title="Print"><i class="fas fa-print"></i></button>
-                <button class="tool-button" title="Share"><i class="fas fa-share-alt"></i></button>
+                <button class="tool-button" title="Save" id="save-btn"><i class="fas fa-save"></i></button>
+                <button class="tool-button" title="Print" id="print-btn"><i class="fas fa-print"></i></button>
+                <button class="tool-button" title="Share" id="share-btn"><i class="fas fa-share-alt"></i></button>
             </div>
         </div>
 
         <!-- Menu Bar -->
         <div class="menu-bar">
             <div class="menu-item" id="file-menu">File</div>
-            <div class="menu-item" id="edit-menu">Edit</div>
-            <div class="menu-item" id="view-menu">View</div>
+            <div class="menu-item" id="home-menu">Home</div>
             <div class="menu-item" id="insert-menu">Insert</div>
-            <div class="menu-item" id="format-menu">Format</div>
+            <div class="menu-item" id="formulas-menu">Formulas</div>
             <div class="menu-item" id="data-menu">Data</div>
             <div class="menu-item" id="help-menu">Help</div>
+            
+            <!-- File Dropdown -->
+            <div class="dropdown-menu" id="file-dropdown">
+                <div class="dropdown-item" data-action="new"><i class="fas fa-plus"></i> New</div>
+                <div class="dropdown-item" data-action="open"><i class="fas fa-folder-open"></i> Open</div>
+                <div class="dropdown-item" data-action="save"><i class="fas fa-save"></i> Save</div>
+                <div class="dropdown-item" data-action="save-as"><i class="fas fa-save"></i> Save As</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="print"><i class="fas fa-print"></i> Print</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" data-action="share"><i class="fas fa-share-alt"></i> Share</div>
+                <div class="dropdown-item" data-action="export"><i class="fas fa-file-export"></i> Export</div>
+            </div>
+            
+            <!-- Other dropdown menus would be defined here -->
         </div>
 
         <!-- Toolbar -->
@@ -456,25 +542,25 @@
                 </select>
             </div>
             <div class="tool-section">
-                <button class="tool-button" title="Bold"><i class="fas fa-bold"></i></button>
-                <button class="tool-button" title="Italic"><i class="fas fa-italic"></i></button>
-                <button class="tool-button" title="Underline"><i class="fas fa-underline"></i></button>
+                <button class="tool-button" title="Bold" id="bold-btn"><i class="fas fa-bold"></i></button>
+                <button class="tool-button" title="Italic" id="italic-btn"><i class="fas fa-italic"></i></button>
+                <button class="tool-button" title="Underline" id="underline-btn"><i class="fas fa-underline"></i></button>
             </div>
             <div class="tool-section">
-                <button class="tool-button" title="Align Left"><i class="fas fa-align-left"></i></button>
-                <button class="tool-button" title="Align Center"><i class="fas fa-align-center"></i></button>
-                <button class="tool-button" title="Align Right"><i class="fas fa-align-right"></i></button>
+                <button class="tool-button" title="Align Left" id="align-left-btn"><i class="fas fa-align-left"></i></button>
+                <button class="tool-button" title="Align Center" id="align-center-btn"><i class="fas fa-align-center"></i></button>
+                <button class="tool-button" title="Align Right" id="align-right-btn"><i class="fas fa-align-right"></i></button>
             </div>
             <div class="tool-section">
-                <button class="tool-button" title="Number Format"><i class="fas fa-dollar-sign"></i></button>
-                <button class="tool-button" title="Percentage"><i class="fas fa-percent"></i></button>
-                <button class="tool-button" title="Comma Style"><i class="fas fa-comma"></i></button>
+                <button class="tool-button" title="Number Format" id="number-format-btn"><i class="fas fa-dollar-sign"></i></button>
+                <button class="tool-button" title="Percentage" id="percentage-btn"><i class="fas fa-percent"></i></button>
+                <button class="tool-button" title="Comma Style" id="comma-style-btn"><i class="fas fa-comma"></i></button>
             </div>
             <div class="tool-section">
-                <button class="tool-button" title="Insert Function"><i class="fas fa-function"></i></button>
-                <button class="tool-button" title="AutoSum"><i class="fas fa-sigma"></i></button>
-                <button class="tool-button" title="Sort Ascending"><i class="fas fa-sort-amount-up"></i></button>
-                <button class="tool-button" title="Sort Descending"><i class="fas fa-sort-amount-down"></i></button>
+                <button class="tool-button" title="Insert Function" id="insert-function-btn"><i class="fas fa-function"></i></button>
+                <button class="tool-button" title="AutoSum" id="autosum-btn"><i class="fas fa-sigma"></i></button>
+                <button class="tool-button" title="Sort Ascending" id="sort-asc-btn"><i class="fas fa-sort-amount-up"></i></button>
+                <button class="tool-button" title="Sort Descending" id="sort-desc-btn"><i class="fas fa-sort-amount-down"></i></button>
             </div>
         </div>
 
@@ -506,27 +592,39 @@
         </div>
     </div>
 
-    <!-- File Modal -->
-    <div class="modal" id="file-modal">
+    <!-- File Operation Modals -->
+    <div class="modal" id="save-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>File</h2>
+                <h2>Save Workbook</h2>
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="modal-options">
-                    <div class="modal-option" data-action="new">New Workbook</div>
-                    <div class="modal-option" data-action="open">Open</div>
-                    <div class="modal-option" data-action="save">Save</div>
-                    <div class="modal-option" data-action="save-as">Save As</div>
-                    <div class="modal-option" data-action="print">Print</div>
-                    <div class="modal-option" data-action="share">Share</div>
-                    <div class="modal-option" data-action="export">Export</div>
+                <p>Enter a name for your workbook:</p>
+                <input type="text" id="save-filename" class="formula-input" style="width: 100%; margin-top: 10px;" value="Untitled Workbook">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="save-cancel">Cancel</button>
+                <button class="btn btn-primary" id="save-confirm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="print-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Print</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Print your spreadsheet? Make sure your printer is connected.</p>
+                <div style="margin-top: 15px;">
+                    <label><input type="checkbox" id="print-gridlines" checked> Print gridlines</label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
-                <button class="btn btn-primary" id="modal-ok">OK</button>
+                <button class="btn btn-secondary" id="print-cancel">Cancel</button>
+                <button class="btn btn-primary" id="print-confirm">Print</button>
             </div>
         </div>
     </div>
@@ -540,6 +638,7 @@
             const columnHeaders = document.getElementById('column-headers');
             const cellsContainer = document.getElementById('cells-container');
             let selectedCell = null;
+            let currentFile = null;
 
             // Create row numbers
             for (let i = 1; i <= rows; i++) {
@@ -599,38 +698,252 @@
                 }
             });
 
+            // Menu functionality
+            const menuItems = document.querySelectorAll('.menu-item');
+            const dropdowns = document.querySelectorAll('.dropdown-menu');
+            
+            // Hide all dropdowns
+            function hideAllDropdowns() {
+                dropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+                menuItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+            }
+            
             // File menu functionality
             const fileMenu = document.getElementById('file-menu');
-            const fileModal = document.getElementById('file-modal');
-            const closeModal = document.querySelector('.close');
-            const modalCancel = document.getElementById('modal-cancel');
-            const modalOk = document.getElementById('modal-ok');
-
-            fileMenu.addEventListener('click', function() {
-                fileModal.style.display = 'flex';
-            });
-
-            closeModal.addEventListener('click', function() {
-                fileModal.style.display = 'none';
-            });
-
-            modalCancel.addEventListener('click', function() {
-                fileModal.style.display = 'none';
-            });
-
-            modalOk.addEventListener('click', function() {
-                // In a real app, this would perform the selected action
-                alert('Action performed!');
-                fileModal.style.display = 'none';
-            });
-
-            // Close modal if clicked outside
-            window.addEventListener('click', function(e) {
-                if (e.target === fileModal) {
-                    fileModal.style.display = 'none';
+            const fileDropdown = document.getElementById('file-dropdown');
+            
+            fileMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isShowing = fileDropdown.classList.contains('show');
+                
+                hideAllDropdowns();
+                
+                if (!isShowing) {
+                    fileDropdown.classList.add('show');
+                    fileMenu.classList.add('active');
+                    // Position the dropdown below the file menu
+                    fileDropdown.style.left = fileMenu.offsetLeft + 'px';
                 }
             });
-
+            
+            // Close dropdowns when clicking elsewhere
+            document.addEventListener('click', function() {
+                hideAllDropdowns();
+            });
+            
+            // Prevent dropdown from closing when clicking inside it
+            dropdowns.forEach(dropdown => {
+                dropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+            
+            // File dropdown actions
+            const fileOptions = document.querySelectorAll('#file-dropdown .dropdown-item');
+            fileOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    handleFileAction(action);
+                    hideAllDropdowns();
+                });
+            });
+            
+            function handleFileAction(action) {
+                switch(action) {
+                    case 'new':
+                        newWorkbook();
+                        break;
+                    case 'open':
+                        openFile();
+                        break;
+                    case 'save':
+                        showSaveModal();
+                        break;
+                    case 'save-as':
+                        showSaveModal(true);
+                        break;
+                    case 'print':
+                        showPrintModal();
+                        break;
+                    case 'share':
+                        shareWorkbook();
+                        break;
+                    case 'export':
+                        exportWorkbook();
+                        break;
+                }
+            }
+            
+            function newWorkbook() {
+                if (confirm('Create a new workbook? Any unsaved changes will be lost.')) {
+                    // Clear all cells
+                    const cells = document.querySelectorAll('.cell');
+                    cells.forEach(cell => {
+                        cell.textContent = '';
+                    });
+                    
+                    // Reset workbook name
+                    document.getElementById('workbook-name').value = 'Untitled Workbook';
+                    currentFile = null;
+                    
+                    // Update status
+                    updateStatus('New workbook created');
+                }
+            }
+            
+            function openFile() {
+                // Create a file input element
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json,.csv,.txt';
+                
+                fileInput.onchange = e => { 
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            loadWorkbook(data);
+                            currentFile = file.name;
+                            document.getElementById('workbook-name').value = file.name.replace(/\.[^/.]+$/, "");
+                            updateStatus('Workbook loaded successfully');
+                        } catch (error) {
+                            alert('Error loading file: ' + error.message);
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                fileInput.click();
+            }
+            
+            function showSaveModal(isSaveAs = false) {
+                const modal = document.getElementById('save-modal');
+                modal.style.display = 'flex';
+                
+                // Set up event listeners for the modal
+                document.getElementById('save-cancel').onclick = function() {
+                    modal.style.display = 'none';
+                };
+                
+                document.querySelector('#save-modal .close').onclick = function() {
+                    modal.style.display = 'none';
+                };
+                
+                document.getElementById('save-confirm').onclick = function() {
+                    const filename = document.getElementById('save-filename').value;
+                    saveWorkbook(filename);
+                    modal.style.display = 'none';
+                };
+            }
+            
+            function saveWorkbook(filename) {
+                // Collect all cell data
+                const cells = document.querySelectorAll('.cell');
+                const cellData = [];
+                
+                cells.forEach(cell => {
+                    cellData.push({
+                        row: cell.dataset.row,
+                        col: cell.dataset.col,
+                        value: cell.textContent
+                    });
+                });
+                
+                // Create workbook object
+                const workbook = {
+                    name: filename,
+                    cells: cellData,
+                    savedAt: new Date().toISOString()
+                };
+                
+                // Convert to JSON and create a download link
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(workbook));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", filename + ".json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                
+                currentFile = filename;
+                updateStatus('Workbook saved successfully');
+            }
+            
+            function loadWorkbook(data) {
+                // Clear existing cells
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                });
+                
+                // Load saved data
+                data.cells.forEach(cell => {
+                    const cellElement = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                    if (cellElement) {
+                        cellElement.textContent = cell.value;
+                    }
+                });
+            }
+            
+            function showPrintModal() {
+                const modal = document.getElementById('print-modal');
+                modal.style.display = 'flex';
+                
+                // Set up event listeners for the modal
+                document.getElementById('print-cancel').onclick = function() {
+                    modal.style.display = 'none';
+                };
+                
+                document.querySelector('#print-modal .close').onclick = function() {
+                    modal.style.display = 'none';
+                };
+                
+                document.getElementById('print-confirm').onclick = function() {
+                    const printGridlines = document.getElementById('print-gridlines').checked;
+                    
+                    if (printGridlines) {
+                        document.querySelectorAll('.cell, .row-number, .column-header').forEach(el => {
+                            el.style.border = '1px solid #000';
+                        });
+                    }
+                    
+                    window.print();
+                    
+                    // Reset borders after printing
+                    if (printGridlines) {
+                        document.querySelectorAll('.cell, .row-number, .column-header').forEach(el => {
+                            el.style.border = '';
+                        });
+                    }
+                    
+                    modal.style.display = 'none';
+                };
+            }
+            
+            function shareWorkbook() {
+                alert('Share functionality would be implemented here. In a real application, this would generate a shareable link or integrate with cloud services.');
+            }
+            
+            function exportWorkbook() {
+                alert('Export functionality would be implemented here. In a real application, this would allow exporting to PDF, CSV, or other formats.');
+            }
+            
+            function updateStatus(message) {
+                document.querySelector('.status-info span').textContent = message;
+                
+                // Clear status after 3 seconds
+                setTimeout(() => {
+                    document.querySelector('.status-info span').textContent = 'Ready';
+                }, 3000);
+            }
+            
             // Workbook name editing
             const workbookName = document.getElementById('workbook-name');
             workbookName.addEventListener('keydown', function(e) {
@@ -638,42 +951,62 @@
                     this.blur();
                 }
             });
-
+            
             // Toolbar functionality
             const toolButtons = document.querySelectorAll('.tool-button');
             toolButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    // In a real app, this would implement the tool's functionality
                     const title = this.getAttribute('title');
-                    alert(`${title} tool clicked!`);
+                    
+                    // Apply formatting to selected cell
+                    if (selectedCell) {
+                        switch (title) {
+                            case 'Bold':
+                                selectedCell.style.fontWeight = selectedCell.style.fontWeight === 'bold' ? 'normal' : 'bold';
+                                break;
+                            case 'Italic':
+                                selectedCell.style.fontStyle = selectedCell.style.fontStyle === 'italic' ? 'normal' : 'italic';
+                                break;
+                            case 'Underline':
+                                selectedCell.style.textDecoration = selectedCell.style.textDecoration === 'underline' ? 'none' : 'underline';
+                                break;
+                            case 'Align Left':
+                                selectedCell.style.textAlign = 'left';
+                                break;
+                            case 'Align Center':
+                                selectedCell.style.textAlign = 'center';
+                                break;
+                            case 'Align Right':
+                                selectedCell.style.textAlign = 'right';
+                                break;
+                        }
+                    }
+                    
+                    updateStatus(`${title} applied`);
                 });
             });
-
+            
             // Font selection
             const fontFamily = document.getElementById('font-family');
             const fontSize = document.getElementById('font-size');
-
+            
             fontFamily.addEventListener('change', function() {
                 if (selectedCell) {
                     selectedCell.style.fontFamily = this.value;
+                    updateStatus(`Font changed to ${this.value}`);
                 }
             });
-
+            
             fontSize.addEventListener('change', function() {
                 if (selectedCell) {
                     selectedCell.style.fontSize = this.value + 'px';
+                    updateStatus(`Font size changed to ${this.value}px`);
                 }
             });
-
-            // Other menu items
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                if (item.id !== 'file-menu') {
-                    item.addEventListener('click', function() {
-                        alert(`${this.textContent} menu clicked!`);
-                    });
-                }
-            });
+            
+            // Set up save and print buttons
+            document.getElementById('save-btn').addEventListener('click', () => showSaveModal());
+            document.getElementById('print-btn').addEventListener('click', () => showPrintModal());
         });
     </script>
 </body>
